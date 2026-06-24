@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.cursor/
+.git/
+.gitignore
+static/outputs/*
+!static/outputs/.gitkeep
+*.md
+client_example.py
+n8n/

@@ -1,0 +1,102 @@
+{
+  "name": "N2V — Generate Video (FastAPI)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "url",
+              "name": "url",
+              "value": "https://www.cnnindonesia.com/",
+              "type": "string"
+            },
+            {
+              "id": "duration",
+              "name": "duration",
+              "value": 7,
+              "type": "number"
+            },
+            {
+              "id": "watermark",
+              "name": "watermark",
+              "value": "@n8n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2c3d4e5-set",
+      "name": "Payload (edit di sini)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/generate-video",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  url: $json.url,\n  duration: $json.duration,\n  watermark: $json.watermark,\n  language: 'Indonesia',\n  accent_color: '#FF0000',\n  title_bg_color: '#FFFFFF',\n  title_text_color: '#000000',\n  summary_text_color: '#FFFFFF',\n  canvas_bg_color: '#000000',\n  image_x: 'auto',\n  image_y: 'auto',\n  title_x: 'auto',\n  title_y: 'auto',\n  summary_x: 'auto',\n  summary_y: 'auto'\n}) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "c3d4e5f6-http",
+      "name": "POST /generate-video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 0],
+      "notesInFlow": true,
+      "notes": "Ubah URL host jika API tidak di localhost (mis. http://10.x.x.x:8000). Timeout 300s untuk Gemini + FFmpeg."
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Payload (edit di sini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload (edit di sini)": {
+      "main": [
+        [
+          {
+            "node": "POST /generate-video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

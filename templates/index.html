@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>News Breaking Video — Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-0: #0a0a0f;
+      --bg-1: #11131c;
+      --bg-2: #181b27;
+      --bg-3: #232737;
+      --border: #2a2f42;
+      --text: #e6e8ef;
+      --muted: #8a90a6;
+      --accent: #ff2d55;
+      --accent-2: #ff6b3d;
+      --ok: #21d07a;
+      --err: #ff4d6d;
+      --radius: 14px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg-0); color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif; min-height: 100vh; }
+    body {
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(255,45,85,.15), transparent 60%),
+        radial-gradient(900px 500px at 100% 0%, rgba(255,107,61,.12), transparent 55%),
+        var(--bg-0);
+    }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(12px);
+      background: rgba(10,10,15,.7);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: .2px; }
+    .brand .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,45,85,.18);
+    }
+    .api-pill {
+      font-size: 12px; color: var(--muted);
+      background: var(--bg-2); border: 1px solid var(--border);
+      padding: 6px 10px; border-radius: 999px;
+    }
+    .api-pill code { color: var(--text); }
+
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 28px 24px 80px; }
+    h1 { font-size: 30px; margin: 6px 0 4px; font-weight: 800; letter-spacing: -.4px; }
+    .sub { color: var(--muted); margin-bottom: 24px; font-size: 14px; }
+
+    .grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 24px; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+    .card h2 {
+      margin: 0 0 14px; font-size: 16px; font-weight: 700;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .card h2 .badge {
+      font-size: 11px; padding: 3px 8px; border-radius: 999px;
+      background: var(--bg-3); color: var(--muted); font-weight: 600;
+    }
+
+    .row { display: grid; gap: 14px; }
+    .row.cols-2 { grid-template-columns: 1fr 1fr; }
+    .row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .row.cols-5 { grid-template-columns: repeat(5, 1fr); }
+    @media (max-width: 640px) {
+      .row.cols-2, .row.cols-3, .row.cols-5 { grid-template-columns: 1fr; }
+    }
+
+    label { font-size: 12.5px; color: var(--muted); display: block; margin-bottom: 6px; font-weight: 500; }
+    input[type="text"], input[type="url"], input[type="number"], select, textarea {
+      width: 100%; padding: 11px 13px;
+      background: var(--bg-3); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-size: 14px; outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255,45,85,.18);
+    }
+    input[type="number"] { font-variant-numeric: tabular-nums; }
+
+    .color-field { position: relative; }
+    .color-field input[type="color"] {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      width: 32px; height: 32px; border: none; padding: 0; background: transparent;
+      cursor: pointer;
+    }
+    .color-field input[type="text"] { padding-right: 50px; font-family: ui-monospace, monospace; }
+
+    .file-drop {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--bg-3); border: 1px dashed var(--border);
+      border-radius: 10px; padding: 12px;
+    }
+    .file-drop input[type="file"] {
+      flex: 1; color: var(--muted); font-size: 13px;
+    }
+    .file-drop .ext { font-size: 11px; color: var(--muted); }
+
+    .actions { display: flex; gap: 12px; margin-top: 22px; align-items: center; }
+    .btn {
+      appearance: none; border: 0; cursor: pointer;
+      padding: 13px 22px; border-radius: 12px; font-weight: 700; font-size: 14px;
+      transition: transform .05s, box-shadow .2s, filter .2s;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary {
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 8px 24px rgba(255,45,85,.35);
+    }
+    .btn-primary:hover { filter: brightness(1.08); }
+    .btn-primary:disabled { opacity: .55; cursor: not-allowed; filter: grayscale(.3); }
+    .btn-ghost {
+      background: var(--bg-3); color: var(--text); border: 1px solid var(--border);
+    }
+
+    .spinner {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: white;
+      animation: spin .8s linear infinite;
+      display: inline-block; vertical-align: -3px; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .preview {
+      position: sticky; top: 78px;
+    }
+    .video-frame {
+      aspect-ratio: 9/16; width: 100%;
+      background: #000; border-radius: 12px; overflow: hidden;
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 13px; text-align: center; padding: 24px;
+    }
+    .video-frame video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+    .placeholder-icon {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: var(--bg-3); display: grid; place-items: center;
+      margin: 0 auto 12px; font-size: 28px;
+    }
+
+    .meta { margin-top: 14px; font-size: 13px; }
+    .meta .title { font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 4px; }
+    .meta .summary { color: var(--muted); line-height: 1.5; }
+    .meta .stats {
+      margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;
+      font-size: 12px; color: var(--muted);
+    }
+    .meta .stats span {
+      background: var(--bg-3); border: 1px solid var(--border);
+      padding: 5px 10px; border-radius: 999px;
+    }
+    .meta a.dl {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 12px; color: var(--ok); text-decoration: none; font-weight: 600;
+    }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 100;
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-left: 4px solid var(--err);
+      padding: 14px 16px; border-radius: 10px;
+      box-shadow: var(--shadow); max-width: 400px;
+      transform: translateY(20px); opacity: 0;
+      transition: transform .25s, opacity .25s;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.ok { border-left-color: var(--ok); }
+    .toast .t { font-weight: 700; margin-bottom: 4px; font-size: 13px; }
+    .toast .m { font-size: 12.5px; color: var(--muted); white-space: pre-wrap; word-break: break-word; }
+
+    details.adv {
+      margin-top: 14px; padding: 12px 14px;
+      background: var(--bg-3); border: 1px solid var(--border); border-radius: 10px;
+    }
+    details.adv summary {
+      cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted);
+      list-style: none;
+    }
+    details.adv[open] summary { color: var(--text); margin-bottom: 12px; }
+    details.adv summary::after { content: " ▾"; }
+    details.adv[open] summary::after { content: " ▴"; }
+
+    .hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+    .auto-toggle {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; margin-bottom: 12px;
+      background: linear-gradient(135deg, rgba(255,45,85,.10), rgba(255,107,61,.06));
+      border: 1px solid var(--border); border-radius: 10px;
+    }
+    .auto-toggle input[type="checkbox"] {
+      appearance: none; width: 40px; height: 22px;
+      background: var(--bg-3); border: 1px solid var(--border);
+      border-radius: 999px; position: relative; cursor: pointer;
+      transition: background .2s;
+    }
+    .auto-toggle input[type="checkbox"]::after {
+      content: ""; position: absolute; top: 2px; left: 2px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--muted); transition: transform .2s, background .2s;
+    }
+    .auto-toggle input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+    .auto-toggle input[type="checkbox"]:checked::after { transform: translateX(18px); background: white; }
+    .auto-toggle label { margin: 0; color: var(--text); font-size: 13.5px; font-weight: 600; }
+    .auto-toggle .desc { font-size: 11.5px; color: var(--muted); font-weight: 400; }
+
+    .disabled-block { opacity: .45; pointer-events: none; filter: grayscale(.4); }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <span>News Breaking Video</span>
+    </div>
+    <div class="api-pill">API: <code>{{ api_url }}</code></div>
+  </div>
+
+  <div class="wrap">
+    <h1>Buat Video Berita 9:16</h1>
+    <p class="sub">Tempel URL artikel, atur tampilan, lalu generate video siap untuk Reels / TikTok / Shorts.</p>
+
+    <form id="form" class="grid" autocomplete="off">
+      <!-- ── KIRI: FORM ──────────────────────────────────────────────── -->
+      <div>
+        <div class="card">
+          <h2>1. Artikel & Media <span class="badge">wajib URL</span></h2>
+          <div class="row">
+            <div>
+              <label for="url">URL Artikel</label>
+              <input type="url" id="url" name="url" required
+                     placeholder="https://www.cnnindonesia.com/..." />
+            </div>
+            <div class="row cols-3">
+              <div>
+                <label for="bg_video">Video Background <span style="color:var(--muted)">(opsional)</span></label>
+                <div class="file-drop">
+                  <input type="file" id="bg_video" name="bg_video" accept="video/mp4,video/webm" />
+                </div>
+                <div class="hint">MP4 / WebM</div>
+              </div>
+              <div>
+                <label for="audio">Audio <span style="color:var(--muted)">(opsional)</span></label>
+                <div class="file-drop">
+                  <input type="file" id="audio" name="audio" accept="audio/*" />
+                </div>
+                <div class="hint">MP3 / WAV / AAC</div>
+              </div>
+              <div>
+                <label for="image">Override Gambar <span style="color:var(--muted)">(opsional)</span></label>
+                <div class="file-drop">
+                  <input type="file" id="image" name="image" accept="image/*" />
+                </div>
+                <div class="hint">JPEG / PNG</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 18px;">
+          <h2>2. Teks & Bahasa</h2>
+          <div class="row cols-3">
+            <div>
+              <label for="watermark">Watermark</label>
+              <input type="text" id="watermark" name="watermark" value="@username" />
+            </div>
+            <div>
+              <label for="language">Bahasa Output</label>
+              <select id="language" name="language">
+                <option>Indonesia</option>
+                <option>English</option>
+                <option>Malay</option>
+                <option>Arabic</option>
+                <option>Spanish</option>
+                <option>Japanese</option>
+              </select>
+            </div>
+            <div>
+              <label for="duration">Durasi (detik)</label>
+              <input type="number" id="duration" name="duration" min="3" max="60" value="7" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 18px;">
+          <h2>3. Warna</h2>
+          <div class="row cols-5">
+            <div>
+              <label>Aksen</label>
+              <div class="color-field">
+                <input type="text" name="accent_color" value="#FF0000" data-color />
+                <input type="color" value="#FF0000" />
+              </div>
+            </div>
+            <div>
+              <label>BG Judul</label>
+              <div class="color-field">
+                <input type="text" name="title_bg_color" value="#FFFFFF" data-color />
+                <input type="color" value="#FFFFFF" />
+              </div>
+            </div>
+            <div>
+              <label>Teks Judul</label>
+              <div class="color-field">
+                <input type="text" name="title_text_color" value="#000000" data-color />
+                <input type="color" value="#000000" />
+              </div>
+            </div>
+            <div>
+              <label>Teks Ringkasan</label>
+              <div class="color-field">
+                <input type="text" name="summary_text_color" value="#FFFFFF" data-color />
+                <input type="color" value="#FFFFFF" />
+              </div>
+            </div>
+            <div>
+              <label>BG Canvas</label>
+              <div class="color-field">
+                <input type="text" name="canvas_bg_color" value="#000000" data-color />
+                <input type="color" value="#000000" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <details class="adv" open>
+          <summary>Posisi elemen (canvas 1080×1920)</summary>
+
+          <div class="auto-toggle">
+            <input type="checkbox" id="auto_layout" name="auto_layout" checked />
+            <div>
+              <label for="auto_layout">Auto Layout — rapikan otomatis</label>
+              <div class="desc">Gambar diposisikan di tengah, judul &amp; ringkasan tidak tumpang tindih dan tidak menabrak watermark.</div>
+            </div>
+          </div>
+
+          <div class="row cols-3" id="posGrid">
+            <div>
+              <label>image_x</label>
+              <input type="number" name="image_x" value="0" placeholder="auto" />
+            </div>
+            <div>
+              <label>image_y</label>
+              <input type="number" name="image_y" value="0" placeholder="auto" />
+            </div>
+            <div>
+              <label>title_x</label>
+              <input type="number" name="title_x" value="80" placeholder="auto" />
+            </div>
+            <div>
+              <label>title_y</label>
+              <input type="number" name="title_y" value="1250" placeholder="auto" />
+            </div>
+            <div>
+              <label>summary_x</label>
+              <input type="number" name="summary_x" value="80" placeholder="auto" />
+            </div>
+            <div>
+              <label>summary_y</label>
+              <input type="number" name="summary_y" value="1580" placeholder="auto" />
+            </div>
+          </div>
+        </details>
+
+        <div class="actions">
+          <button type="submit" id="submitBtn" class="btn btn-primary">Generate Video</button>
+          <button type="reset" class="btn btn-ghost" id="resetBtn">Reset</button>
+          <span id="status" style="color: var(--muted); font-size: 13px;"></span>
+        </div>
+      </div>
+
+      <!-- ── KANAN: PREVIEW ──────────────────────────────────────────── -->
+      <div class="preview">
+        <div class="card">
+          <h2>Preview <span class="badge">9:16</span></h2>
+          <div class="video-frame" id="videoFrame">
+            <div>
+              <div class="placeholder-icon">▶</div>
+              <div>Video akan muncul di sini setelah generate.</div>
+            </div>
+          </div>
+          <div class="meta" id="meta" style="display:none;">
+            <div class="title" id="metaTitle"></div>
+            <div class="summary" id="metaSummary"></div>
+            <div class="stats">
+              <span id="metaDuration"></span>
+              <span id="metaSize"></span>
+            </div>
+            <a class="dl" id="dlLink" href="#" download>⬇ Unduh MP4</a>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="toast" id="toast"><div class="t"></div><div class="m"></div></div>
+
+  <script>
+    // ── Sinkron color-picker ↔ text input ───────────────────────────
+    document.querySelectorAll('.color-field').forEach(field => {
+      const txt = field.querySelector('input[type="text"]');
+      const clr = field.querySelector('input[type="color"]');
+      clr.addEventListener('input', () => { txt.value = clr.value.toUpperCase(); });
+      txt.addEventListener('input',  () => {
+        const v = txt.value.trim();
+        if (/^#([0-9A-F]{3}){1,2}$/i.test(v)) clr.value = v;
+      });
+    });
+
+    // ── Toast helper ────────────────────────────────────────────────
+    const toast = document.getElementById('toast');
+    function showToast(title, msg, ok = false) {
+      toast.classList.toggle('ok', ok);
+      toast.querySelector('.t').textContent = title;
+      toast.querySelector('.m').textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toast.classList.remove('show'), 6000);
+    }
+
+    // ── Submit form via fetch ───────────────────────────────────────
+    const form     = document.getElementById('form');
+    const btn      = document.getElementById('submitBtn');
+    const statusEl = document.getElementById('status');
+    const frame    = document.getElementById('videoFrame');
+    const meta     = document.getElementById('meta');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = new FormData(form);
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Memproses…';
+      statusEl.textContent = 'Menghubungi API & merender video (bisa 30–90 dtk)…';
+      meta.style.display = 'none';
+      frame.innerHTML =
+        '<div><div class="placeholder-icon">⏳</div><div>Sedang generate…<br/>Sabar ya 🙂</div></div>';
+
+      try {
+        const resp = await fetch('/api/generate', { method: 'POST', body: data });
+        const out  = await resp.json();
+        if (!resp.ok) {
+          throw new Error(out.error + (out.detail ? '\n' + out.detail : ''));
+        }
+
+        frame.innerHTML =
+          `<video src="${out.video_url}" controls autoplay muted playsinline></video>`;
+        document.getElementById('metaTitle').textContent    = out.title;
+        document.getElementById('metaSummary').textContent  = out.summary;
+        document.getElementById('metaDuration').textContent = `⏱ ${out.duration} detik`;
+        document.getElementById('metaSize').textContent     = `💾 ${out.size_mb} MB`;
+        const dl = document.getElementById('dlLink');
+        dl.href = out.video_url;
+        dl.download = 'news_video.mp4';
+        meta.style.display = 'block';
+        statusEl.textContent = '✓ Selesai.';
+        showToast('Video siap', out.title, true);
+      } catch (err) {
+        frame.innerHTML =
+          '<div><div class="placeholder-icon">⚠</div><div>Gagal membuat video.</div></div>';
+        statusEl.textContent = '';
+        showToast('Gagal', err.message || String(err));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate Video';
+      }
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      setTimeout(() => {
+        document.querySelectorAll('.color-field').forEach(f => {
+          const t = f.querySelector('input[type="text"]');
+          const c = f.querySelector('input[type="color"]');
+          c.value = t.defaultValue;
+        });
+        applyAutoLayoutUI();
+      }, 0);
+    });
+
+    // ── Auto-Layout toggle: disable input posisi saat aktif ─────────
+    const autoChk = document.getElementById('auto_layout');
+    const posGrid = document.getElementById('posGrid');
+    function applyAutoLayoutUI() {
+      if (autoChk.checked) {
+        posGrid.classList.add('disabled-block');
+        posGrid.querySelectorAll('input').forEach(i => i.setAttribute('tabindex', '-1'));
+      } else {
+        posGrid.classList.remove('disabled-block');
+        posGrid.querySelectorAll('input').forEach(i => i.removeAttribute('tabindex'));
+      }
+    }
+    autoChk.addEventListener('change', applyAutoLayoutUI);
+    applyAutoLayoutUI();
+  </script>
+</body>
+</html>
