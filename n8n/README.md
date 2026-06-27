@@ -7,10 +7,10 @@
 
 ## Yang perlu diubah
 
-- Node **POST /generate-video**: ganti `http://127.0.0.1:8000/generate-video` ke URL server Anda (mis. `https://api.domain.com/generate-video`) jika FastAPI tidak di mesin yang sama dengan n8n.
+- Node **POST /generate-video**: ganti `http://127.0.0.1:8001/generate-video` ke URL server Anda (mis. `https://api.domain.com/generate-video`) jika FastAPI tidak di mesin yang sama dengan n8n.
 - Node **Payload (edit di sini)**: ubah `judul`, `isi`, `duration`, `watermark`.
 
-Pastikan service API (port **8000**) sudah jalan sebelum menjalankan workflow.
+Pastikan service API (port **8001**) sudah jalan sebelum menjalankan workflow.
 
 ## Response
 
@@ -54,7 +54,7 @@ Media base64 (opsional): isi string base64 file MP4/WebM/MP3/JPEG tanpa atau den
 
 1. Tambah node **HTTP Request**.
 2. **Method**: `POST`
-3. **URL**: `http://ALAMAT-API:8000/generate-video`
+3. **URL**: `http://ALAMAT-API:8001/generate-video`
 4. **Authentication**: None (atau sesuai kebutuhan Anda)
 5. **Send Body**: ON → **Body Content Type**: JSON
 6. **Specify Body**: Using JSON / JSON (tergantung versi n8n)
@@ -74,7 +74,7 @@ Media base64 (opsional): isi string base64 file MP4/WebM/MP3/JPEG tanpa atau den
 ## Curl setara
 
 ```bash
-curl -sS -X POST "http://127.0.0.1:8000/generate-video" \
+curl -sS -X POST "http://127.0.0.1:8001/generate-video" \
   -H "Content-Type: application/json" \
   -d '{"judul":"Breaking News","isi":"Teks ringkasan video.","duration":7,"watermark":"@n8n"}' \
   --max-time 300

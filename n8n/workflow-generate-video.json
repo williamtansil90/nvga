@@ -50,7 +50,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://127.0.0.1:8000/generate-video",
+        "url": "http://127.0.0.1:8001/generate-video",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
@@ -74,7 +74,7 @@
       "typeVersion": 4.2,
       "position": [460, 0],
       "notesInFlow": true,
-      "notes": "Ubah URL host jika API tidak di localhost (mis. http://10.x.x.x:8000). Timeout 300s untuk FFmpeg."
+      "notes": "Ubah URL host jika API tidak di localhost (mis. http://10.x.x.x:8001). Timeout 300s untuk FFmpeg."
     }
   ],
   "connections": {

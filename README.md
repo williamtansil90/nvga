@@ -19,7 +19,7 @@ docker compose up -d --build
 | Service | URL |
 |---|---|
 | Web UI | http://localhost:5000 |
-| API + Swagger | http://localhost:8000/docs |
+| API + Swagger | http://localhost:8001/docs |
 
 Perintah berguna:
 
@@ -48,10 +48,10 @@ pip install -r requirements.txt
 ```bash
 python main.py
 # atau
-uvicorn main:app --host 0.0.0.0 --port 8000
+uvicorn main:app --host 0.0.0.0 --port 8001
 ```
 
-Swagger UI tersedia di: http://localhost:8000/docs
+Swagger UI tersedia di: http://localhost:8001/docs
 
 ---
 
@@ -98,7 +98,7 @@ Swagger UI tersedia di: http://localhost:8000/docs
 ## Contoh: cURL
 
 ```bash
-curl -X POST http://localhost:8000/generate-video \
+curl -X POST http://localhost:8001/generate-video \
   -H "Content-Type: application/json" \
   -d '{
     "judul": "Breaking News: Contoh Judul",
@@ -122,7 +122,7 @@ import base64, httpx
 
 def enc(path): return base64.b64encode(open(path,'rb').read()).decode()
 
-resp = httpx.post("http://localhost:8000/generate-video", json={
+resp = httpx.post("http://localhost:8001/generate-video", json={
     "judul":        "Headline Berita",
     "isi":          "Ringkasan teks untuk video vertical.",
     "bg_video_b64": enc("background.mp4"),   # opsional

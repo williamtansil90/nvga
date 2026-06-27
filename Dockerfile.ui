@@ -14,7 +14,7 @@ RUN mkdir -p static/outputs
 ENV UI_HOST=0.0.0.0 \
     UI_PORT=5000 \
     FLASK_DEBUG=0 \
-    API_URL=http://api:8000
+    API_URL=http://api:8001
 
 EXPOSE 5000
 

@@ -5,7 +5,7 @@ News Breaking Video — Flask UI
 UI sederhana yang memanggil API FastAPI di main.py (`POST /generate-video`).
 
 Jalankan:
-    1) Terminal 1 → python main.py           (FastAPI, port 8000)
+    1) Terminal 1 → python main.py           (FastAPI, port 8001)
     2) Terminal 2 → python ui.py             (Flask UI, port 5000)
     3) Buka       → http://localhost:5000
 """
@@ -19,7 +19,7 @@ import httpx
 from flask import Flask, jsonify, render_template, request, send_from_directory
 
 # ─── Konfigurasi ───────────────────────────────────────────────────────────────
-API_URL        = os.getenv("API_URL", "http://localhost:8000")
+API_URL        = os.getenv("API_URL", "http://localhost:8001")
 HOST           = os.getenv("UI_HOST", "0.0.0.0")
 PORT           = int(os.getenv("UI_PORT", "5000"))
 OUTPUT_DIR = Path(__file__).parent / "static" / "outputs"

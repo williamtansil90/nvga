@@ -765,7 +765,7 @@ def root():
 if __name__ == "__main__":
     import uvicorn
     host = os.getenv("UVICORN_HOST", "0.0.0.0")
-    port = int(os.getenv("UVICORN_PORT", "8000"))
+    port = int(os.getenv("UVICORN_PORT", "8001"))
     # Auto-reload hanya saat development (UVICORN_RELOAD=1).
     # Di systemd jangan aktifkan reload — pakai `systemctl restart` saja.
     reload = os.getenv("UVICORN_RELOAD", "0") == "1"

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import httpx
 
-API_URL = "http://localhost:8000"
+API_URL = "http://localhost:8001"
 
 
 def encode_file(path: str) -> str:
