@@ -14,9 +14,15 @@
         "assignments": {
           "assignments": [
             {
-              "id": "url",
-              "name": "url",
-              "value": "https://www.cnnindonesia.com/",
+              "id": "judul",
+              "name": "judul",
+              "value": "Breaking News: Contoh Judul",
+              "type": "string"
+            },
+            {
+              "id": "isi",
+              "name": "isi",
+              "value": "Ini teks ringkasan yang ditampilkan di video berita vertical.",
               "type": "string"
             },
             {
@@ -57,7 +63,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  url: $json.url,\n  duration: $json.duration,\n  watermark: $json.watermark,\n  language: 'Indonesia',\n  accent_color: '#FF0000',\n  title_bg_color: '#FFFFFF',\n  title_text_color: '#000000',\n  summary_text_color: '#FFFFFF',\n  canvas_bg_color: '#000000',\n  image_x: 'auto',\n  image_y: 'auto',\n  title_x: 'auto',\n  title_y: 'auto',\n  summary_x: 'auto',\n  summary_y: 'auto'\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  judul: $json.judul,\n  isi: $json.isi,\n  duration: $json.duration,\n  watermark: $json.watermark,\n  accent_color: '#FF0000',\n  title_bg_color: '#FFFFFF',\n  title_text_color: '#000000',\n  summary_text_color: '#FFFFFF',\n  canvas_bg_color: '#000000',\n  image_x: 'auto',\n  image_y: 'auto',\n  title_x: 'auto',\n  title_y: 'auto',\n  summary_x: 'auto',\n  summary_y: 'auto'\n}) }}",
         "options": {
           "timeout": 300000
         }
@@ -68,7 +74,7 @@
       "typeVersion": 4.2,
       "position": [460, 0],
       "notesInFlow": true,
-      "notes": "Ubah URL host jika API tidak di localhost (mis. http://10.x.x.x:8000). Timeout 300s untuk Gemini + FFmpeg."
+      "notes": "Ubah URL host jika API tidak di localhost (mis. http://10.x.x.x:8000). Timeout 300s untuk FFmpeg."
     }
   ],
   "connections": {

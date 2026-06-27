@@ -240,18 +240,23 @@
 
   <div class="wrap">
     <h1>Buat Video Berita 9:16</h1>
-    <p class="sub">Tempel URL artikel, atur tampilan, lalu generate video siap untuk Reels / TikTok / Shorts.</p>
+    <p class="sub">Isi judul dan teks, atur tampilan, lalu generate video siap untuk Reels / TikTok / Shorts.</p>
 
     <form id="form" class="grid" autocomplete="off">
       <!-- ── KIRI: FORM ──────────────────────────────────────────────── -->
       <div>
         <div class="card">
-          <h2>1. Artikel & Media <span class="badge">wajib URL</span></h2>
+          <h2>1. Konten & Media</h2>
           <div class="row">
             <div>
-              <label for="url">URL Artikel</label>
-              <input type="url" id="url" name="url" required
-                     placeholder="https://www.cnnindonesia.com/..." />
+              <label for="judul">Judul</label>
+              <input type="text" id="judul" name="judul" required
+                     placeholder="Headline berita..." />
+            </div>
+            <div>
+              <label for="isi">Isi / Ringkasan</label>
+              <textarea id="isi" name="isi" rows="4" required
+                        placeholder="Teks ringkasan yang ditampilkan di video..."></textarea>
             </div>
             <div class="row cols-3">
               <div>
@@ -269,7 +274,7 @@
                 <div class="hint">MP3 / WAV / AAC</div>
               </div>
               <div>
-                <label for="image">Override Gambar <span style="color:var(--muted)">(opsional)</span></label>
+                <label for="image">Gambar Artikel <span style="color:var(--muted)">(opsional)</span></label>
                 <div class="file-drop">
                   <input type="file" id="image" name="image" accept="image/*" />
                 </div>
@@ -280,22 +285,11 @@
         </div>
 
         <div class="card" style="margin-top: 18px;">
-          <h2>2. Teks & Bahasa</h2>
-          <div class="row cols-3">
+          <h2>2. Tampilan</h2>
+          <div class="row cols-2">
             <div>
               <label for="watermark">Watermark</label>
               <input type="text" id="watermark" name="watermark" value="@username" />
-            </div>
-            <div>
-              <label for="language">Bahasa Output</label>
-              <select id="language" name="language">
-                <option>Indonesia</option>
-                <option>English</option>
-                <option>Malay</option>
-                <option>Arabic</option>
-                <option>Spanish</option>
-                <option>Japanese</option>
-              </select>
             </div>
             <div>
               <label for="duration">Durasi (detik)</label>

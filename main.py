@@ -4,8 +4,8 @@ News Breaking Video API
 ======================
 POST /generate-video  →  base64 MP4
 
-Input  : URL artikel, base64 video BG, base64 audio, konfigurasi warna/posisi
-Output : base64 MP4 + judul + ringkasan (dari Gemini)
+Input  : judul, isi, base64 video BG, base64 audio, konfigurasi warna/posisi
+Output : base64 MP4 + judul + ringkasan
 """
 
 import asyncio
@@ -14,21 +14,17 @@ import binascii
 import io
 import json
 import os
-import re
 import shutil
 import subprocess
 import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional, Union
-from urllib.parse import quote
 
-import httpx
-from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
-from pydantic import AliasChoices, BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 try:
     LANCZOS = Image.Resampling.LANCZOS
@@ -41,19 +37,19 @@ async def lifespan(app: FastAPI):
     """Validasi dependensi sistem saat startup."""
     if shutil.which("ffmpeg") is None:
         print(
-            "⚠️  PERINGATAN: `ffmpeg` tidak ditemukan di PATH. "
+            "PERINGATAN: `ffmpeg` tidak ditemukan di PATH. "
             "Endpoint /generate-video akan gagal sampai ffmpeg dipasang."
         )
-    print(f"🎬 Default BG video: {DEFAULT_BG_VIDEO} "
+    print(f"Default BG video: {DEFAULT_BG_VIDEO} "
           f"({'OK' if DEFAULT_BG_VIDEO.is_file() else 'tidak ditemukan'})")
-    print(f"🎵 Default audio   : {DEFAULT_AUDIO} "
+    print(f"Default audio   : {DEFAULT_AUDIO} "
           f"({'OK' if DEFAULT_AUDIO.is_file() else 'tidak ditemukan'})")
     yield
 
 
 app = FastAPI(
     title="News Breaking Video API",
-    description="Ubah URL berita → video editan 9:16 siap media sosial (base64 MP4)",
+    description="Ubah judul + isi → video editan 9:16 siap media sosial (base64 MP4)",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -78,7 +74,6 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
-GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
 DURATION_SEC   = 7
 FPS            = 30
 CANVAS_W       = 1080
@@ -99,23 +94,16 @@ DEFAULT_AUDIO    = Path(os.getenv("AUDIO_DEFAULT",    str(MEDIA_DIR / "music.mp3
 # ─── Skema Pydantic ────────────────────────────────────────────────────────────
 class VideoRequest(BaseModel):
     # ── Wajib ──
-    url: str = Field(..., description="URL artikel berita yang akan diproses")
+    judul: str = Field(..., description="Judul berita / headline video")
+    isi:   str = Field(..., description="Isi / ringkasan teks yang ditampilkan di video")
 
     # ── Media (opsional, base64 dengan/tanpa data-URL prefix) ──
     bg_video_b64: Optional[str] = Field(None, description="Video latar (MP4/WebM) di-encode base64")
     audio_b64:    Optional[str] = Field(None, description="Audio (MP3/WAV/AAC) di-encode base64")
-    image_b64:    Optional[str] = Field(None, description="Override gambar artikel (JPEG/PNG) di-encode base64")
-
-    # ── Gemini ──
-    gemini_api_key: str = Field(
-        ...,
-        validation_alias=AliasChoices("gemini_api_key", "GEMINI_API_KEY"),
-        description="API key Gemini (wajib, dikirim lewat body request)",
-    )
+    image_b64:    Optional[str] = Field(None, description="Gambar artikel (JPEG/PNG) di-encode base64")
 
     # ── Konfigurasi teks ──
     watermark:  str = Field("@username",  description="Teks watermark di bawah video")
-    language:   str = Field("Indonesia",  description="Bahasa output Gemini")
     duration:   int = Field(7,            ge=3, le=60, description="Durasi video (detik)")
 
     # ── Warna ──
@@ -133,11 +121,11 @@ class VideoRequest(BaseModel):
     summary_x: Union[int, str] = Field("auto", description="Posisi X ringkasan — int atau 'auto'")
     summary_y: Union[int, str] = Field("auto", description="Posisi Y ringkasan — int atau 'auto'")
 
-    @field_validator("gemini_api_key", mode="before")
+    @field_validator("judul", "isi", mode="before")
     @classmethod
-    def _normalize_gemini_key(cls, v):
+    def _normalize_text(cls, v):
         if v is None or not str(v).strip():
-            raise ValueError("GEMINI_API_KEY wajib diisi di body request")
+            raise ValueError("judul dan isi wajib diisi")
         return str(v).strip()
 
     @field_validator("image_x", "image_y", "title_x", "title_y",
@@ -160,8 +148,8 @@ class VideoRequest(BaseModel):
 
 class VideoResponse(BaseModel):
     video_b64: str = Field(..., description="Video MP4 hasil di-encode base64")
-    title:     str = Field(..., description="Judul yang diekstrak Gemini")
-    summary:   str = Field(..., description="Ringkasan yang dibuat Gemini")
+    title:     str = Field(..., description="Judul dari input")
+    summary:   str = Field(..., description="Isi dari input")
     mime:      str = Field("video/mp4")
     duration:  int
 
@@ -324,228 +312,6 @@ def wrap_text_lines(draw: ImageDraw.ImageDraw, text: str, font, max_px: int) -> 
     if buf:
         lines.append(buf)
     return lines or [""]
-
-
-GEMINI_DEBUG_LOG = "/home/ubuntu/py/n2v/.cursor/debug-04ffb9.log"
-
-
-def _gemini_debug_log(location: str, message: str, data: dict, hypothesis_id: str = "A"):
-    # #region agent log
-    try:
-        import time
-
-        with open(GEMINI_DEBUG_LOG, "a", encoding="utf-8") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "sessionId": "04ffb9",
-                        "timestamp": int(time.time() * 1000),
-                        "location": location,
-                        "message": message,
-                        "data": data,
-                        "hypothesisId": hypothesis_id,
-                        "runId": "pre-fix",
-                    }
-                )
-                + "\n"
-            )
-    except OSError:
-        pass
-    # #endregion
-
-
-def _gemini_retry_delay(response: httpx.Response, attempt: int) -> float:
-    retry_after = response.headers.get("retry-after")
-    if retry_after:
-        try:
-            return min(float(retry_after), 120.0)
-        except ValueError:
-            pass
-    try:
-        msg = (response.json().get("error") or {}).get("message", "")
-    except (json.JSONDecodeError, AttributeError):
-        msg = ""
-    match = re.search(r"retry in ([\d.]+)s", msg, re.I)
-    if match:
-        return min(float(match.group(1)) + 1.0, 120.0)
-    return float(2 ** attempt)
-
-
-def _gemini_error_message(response: httpx.Response) -> str:
-    try:
-        return ((response.json().get("error") or {}).get("message") or "")[:300]
-    except (json.JSONDecodeError, AttributeError):
-        return response.text[:300]
-
-
-def _gemini_quota_exhausted(response: httpx.Response) -> bool:
-    return "quota" in _gemini_error_message(response).lower()
-
-
-# ─── Gemini API ────────────────────────────────────────────────────────────────
-async def call_gemini(prompt: str, api_key: str) -> dict:
-    # #region agent log
-    _gemini_debug_log(
-        "main.py:call_gemini:entry",
-        "Gemini call started",
-        {
-            "model": GEMINI_MODEL,
-            "prompt_len": len(prompt),
-        },
-        "H3",
-    )
-    # #endregion
-
-    schema = {
-        "type": "OBJECT",
-        "properties": {
-            "title":   {"type": "STRING"},
-            "summary": {"type": "STRING"},
-        },
-        "required": ["title", "summary"],
-    }
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "responseSchema": schema,
-        },
-    }
-    endpoint = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{GEMINI_MODEL}:generateContent?key={api_key}"
-    )
-
-    async with httpx.AsyncClient(timeout=60) as client:
-        last_status: Optional[int] = None
-        last_error = ""
-        for attempt in range(5):
-            try:
-                r = await client.post(endpoint, json=payload)
-            except httpx.HTTPError as exc:
-                # #region agent log
-                _gemini_debug_log(
-                    "main.py:call_gemini:network_error",
-                    "httpx error during Gemini request",
-                    {"attempt": attempt, "error_type": type(exc).__name__, "error": str(exc)[:200]},
-                    "H4",
-                )
-                # #endregion
-                raise
-            err_snippet = _gemini_error_message(r)
-            last_status = r.status_code
-            last_error = err_snippet
-            # #region agent log
-            _gemini_debug_log(
-                "main.py:call_gemini:attempt",
-                "Gemini response received",
-                {
-                    "attempt": attempt,
-                    "status_code": r.status_code,
-                    "retry_after": r.headers.get("retry-after"),
-                    "error_snippet": err_snippet,
-                    "quota_exhausted": _gemini_quota_exhausted(r),
-                    "backoff_sec": _gemini_retry_delay(r, attempt)
-                    if r.status_code in (429, 503)
-                    else None,
-                },
-                "H1" if r.status_code in (429, 503) else "H2",
-            )
-            # #endregion
-            if r.status_code == 429 and _gemini_quota_exhausted(r):
-                # #region agent log
-                _gemini_debug_log(
-                    "main.py:call_gemini:quota_exhausted",
-                    "Gemini quota exhausted, failing fast",
-                    {"attempt": attempt},
-                    "H1",
-                )
-                # #endregion
-                raise HTTPException(
-                    429,
-                    "Gemini API quota habis untuk API key ini. "
-                    "Gunakan GEMINI_API_KEY lain lewat body request "
-                    "(https://aistudio.google.com/apikey).",
-                )
-            if r.status_code in (429, 503):
-                await asyncio.sleep(_gemini_retry_delay(r, attempt))
-                continue
-            if not r.is_success:
-                raise HTTPException(502, f"Gemini error {r.status_code}: {r.text[:200]}")
-            data = r.json()
-            raw = data["candidates"][0]["content"]["parts"][0]["text"]
-            # #region agent log
-            _gemini_debug_log(
-                "main.py:call_gemini:success",
-                "Gemini call succeeded",
-                {"attempt": attempt},
-                "H1",
-            )
-            # #endregion
-            return json.loads(raw)
-    # #region agent log
-    _gemini_debug_log(
-        "main.py:call_gemini:exhausted",
-        "All Gemini retries exhausted",
-        {
-            "attempts": 5,
-            "model": GEMINI_MODEL,
-            "last_status": last_status,
-            "last_error": last_error[:200],
-        },
-        "H1",
-    )
-    # #endregion
-    if last_status == 429:
-        raise HTTPException(429, f"Gemini API rate limit: {last_error[:200]}")
-    raise HTTPException(503, "Gemini API tidak merespons setelah beberapa percobaan.")
-
-
-# ─── Scrape gambar OG dari artikel ────────────────────────────────────────────
-async def fetch_og_image(article_url: str) -> Optional[bytes]:
-    """Ambil og:image dari artikel; coba langsung dulu lalu via proxy CORS."""
-    fetch_urls = [
-        article_url,
-        f"https://api.allorigins.win/raw?url={quote(article_url, safe='')}",
-    ]
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
-        )
-    }
-    async with httpx.AsyncClient(
-        timeout=20, follow_redirects=True, headers=headers
-    ) as client:
-        for url in fetch_urls:
-            try:
-                resp = await client.get(url)
-                if not resp.is_success:
-                    continue
-                soup = BeautifulSoup(resp.text, "html.parser")
-                tag = (
-                    soup.find("meta", property="og:image")
-                    or soup.find("meta", attrs={"name": "twitter:image"})
-                    or soup.find("meta", attrs={"name": "og:image"})
-                )
-                if not tag:
-                    continue
-                img_url = (tag.get("content") or "").strip()
-                if not img_url:
-                    continue
-                # Resolve URL relatif terhadap halaman asal
-                if img_url.startswith("//"):
-                    img_url = "https:" + img_url
-                elif img_url.startswith("/"):
-                    from urllib.parse import urljoin
-                    img_url = urljoin(article_url, img_url)
-                ir = await client.get(img_url)
-                ct = ir.headers.get("content-type", "")
-                if ir.is_success and "image" in ct:
-                    return ir.content
-            except Exception:
-                continue
-    return None
 
 
 # ─── Auto Layout ───────────────────────────────────────────────────────────────
@@ -921,12 +687,12 @@ def compose_video(
 
 
 # ─── Endpoint Utama ────────────────────────────────────────────────────────────
-@app.post("/generate-video", response_model=VideoResponse, summary="Buat video dari URL berita")
+@app.post("/generate-video", response_model=VideoResponse, summary="Buat video dari judul dan isi")
 async def generate_video(req: VideoRequest):
     """
     ## Alur Proses
-    1. **Gemini AI** → ekstrak judul + ringkasan dari URL (bahasa pilihan)
-    2. **Scrape** og:image artikel (atau pakai `image_b64` jika disuplai)
+    1. **Judul & isi** → diambil langsung dari JSON input
+    2. **Gambar** → dari `image_b64` jika disuplai
     3. **Auto Layout** → hitung posisi gambar/judul/ringkasan agar proporsional
        (field posisi bernilai `"auto"` akan dihitung; nilai int akan dihormati)
     4. **PIL** → render overlay PNG (foto, gradient, judul, ringkasan, watermark)
@@ -937,30 +703,18 @@ async def generate_video(req: VideoRequest):
     with tempfile.TemporaryDirectory() as tmp:
         tmpdir = Path(tmp)
 
-        # Validasi media sebelum Gemini agar file salah langsung difallback
         bg_video_path = resolve_bg_video_path(req, tmpdir)
         audio_path = resolve_audio_path(req, tmpdir)
 
-        # 1. Proses teks dengan Gemini ──────────────────────────────────────────
-        prompt = (
-            f"Analisis artikel ini: {req.url}. "
-            f"Ambil judul utama dan buat ringkasan kontroversial 2 kalimat pendek. "
-            f"Gunakan Bahasa {req.language}."
-        )
-        ai = await call_gemini(prompt, api_key=req.gemini_api_key)
-        title   = (ai.get("title")   or "Breaking News").strip()
-        summary = (ai.get("summary") or "").strip()
-
-        # 2. Gambar artikel ─────────────────────────────────────────────────────
-        image_bytes = decode_b64(req.image_b64) or await fetch_og_image(req.url)
-
-        # 3. Hitung tata letak (auto / honor manual override) ───────────────────
+        title = req.judul
+        summary = req.isi
+        image_bytes = decode_b64(req.image_b64)
         layout = compute_layout(image_bytes, title, summary, req)
 
-        # 4. Render overlay ─────────────────────────────────────────────────────
+        # Render overlay ─────────────────────────────────────────────────────
         overlay_img = render_overlay(image_bytes, title, summary, req, layout)
 
-        # 5. Komposisi video ─────────────────────────────────────────────────────
+        # Komposisi video ─────────────────────────────────────────────────────
         overlay_path = tmpdir / "overlay.png"
         overlay_img.save(str(overlay_path), "PNG")
 
@@ -998,11 +752,10 @@ def root():
         "status":          "ok",
         "service":         "News Breaking Video API v1.0",
         "ffmpeg":          shutil.which("ffmpeg") or "NOT INSTALLED",
-        "gemini_key": "required in request body (GEMINI_API_KEY)",
         "default_bg_video": str(DEFAULT_BG_VIDEO) if DEFAULT_BG_VIDEO.is_file() else None,
         "default_audio":   str(DEFAULT_AUDIO)    if DEFAULT_AUDIO.is_file()    else None,
         "endpoints": {
-            "POST /generate-video": "Buat video dari URL berita",
+            "POST /generate-video": "Buat video dari judul dan isi",
             "GET  /docs":           "Swagger UI interaktif",
         },
     }

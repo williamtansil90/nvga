@@ -5,3 +5,4 @@ venv/
 .cursor/
 static/outputs/*
 !static/outputs/.gitkeep
+test_output.mp4

@@ -8,9 +8,9 @@
 ## Yang perlu diubah
 
 - Node **POST /generate-video**: ganti `http://127.0.0.1:8000/generate-video` ke URL server Anda (mis. `https://api.domain.com/generate-video`) jika FastAPI tidak di mesin yang sama dengan n8n.
-- Node **Payload (edit di sini)**: ubah `url`, `duration`, `watermark`.
+- Node **Payload (edit di sini)**: ubah `judul`, `isi`, `duration`, `watermark`.
 
-Pastikan service `n2v-api` (port **8000**) sudah jalan sebelum menjalankan workflow.
+Pastikan service API (port **8000**) sudah jalan sebelum menjalankan workflow.
 
 ## Response
 
@@ -23,13 +23,13 @@ Untuk simpan file MP4 di n8n, tambahkan node **Move Binary Data** atau **Write B
 
 ## Contoh body JSON lengkap (referensi)
 
-Semua field opsional kecuali `url`. Tanpa `bg_video_b64` / `audio_b64`, backend memakai `media/background-video.mp4` dan `media/music.mp3`.
+Semua field opsional kecuali `judul` dan `isi`. Tanpa `bg_video_b64` / `audio_b64`, backend memakai `media/background-video.mp4` dan `media/music.mp3`.
 
 ```json
 {
-  "url": "https://www.cnnindonesia.com/nasional/berita-123",
+  "judul": "Breaking News: Contoh Judul",
+  "isi": "Ini teks ringkasan yang ditampilkan di video.",
   "watermark": "@channel",
-  "language": "Indonesia",
   "duration": 7,
   "accent_color": "#FF0000",
   "title_bg_color": "#FFFFFF",
@@ -62,20 +62,20 @@ Media base64 (opsional): isi string base64 file MP4/WebM/MP3/JPEG tanpa atau den
 
 ```javascript
 {{ JSON.stringify({
-  url: "https://www.cnnindonesia.com/",
+  judul: "Breaking News: Contoh Judul",
+  isi: "Ini teks ringkasan untuk video.",
   duration: 7,
-  watermark: "@n8n",
-  language: "Indonesia"
+  watermark: "@n8n"
 }) }}
 ```
 
-8. **Options** → **Timeout**: `300000` (5 menit), karena Gemini + FFmpeg bisa lama.
+8. **Options** → **Timeout**: `300000` (5 menit), karena FFmpeg bisa lama.
 
 ## Curl setara
 
 ```bash
 curl -sS -X POST "http://127.0.0.1:8000/generate-video" \
   -H "Content-Type: application/json" \
-  -d '{"url":"https://www.cnnindonesia.com/","duration":7,"watermark":"@n8n"}' \
+  -d '{"judul":"Breaking News","isi":"Teks ringkasan video.","duration":7,"watermark":"@n8n"}' \
   --max-time 300
 ```

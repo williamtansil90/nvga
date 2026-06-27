@@ -22,7 +22,6 @@ from flask import Flask, jsonify, render_template, request, send_from_directory
 API_URL        = os.getenv("API_URL", "http://localhost:8000")
 HOST           = os.getenv("UI_HOST", "0.0.0.0")
 PORT           = int(os.getenv("UI_PORT", "5000"))
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 OUTPUT_DIR = Path(__file__).parent / "static" / "outputs"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -80,21 +79,17 @@ def generate():
     Terima form-data dari UI, encode file → base64,
     teruskan ke FastAPI, simpan MP4 hasil, balas URL preview.
     """
-    article_url = (request.form.get("url") or "").strip()
-    if not article_url:
-        return jsonify({"error": "URL artikel wajib diisi."}), 400
-
-    gemini_key = (request.form.get("gemini_api_key") or GEMINI_API_KEY or "").strip()
-    if not gemini_key:
-        return jsonify({
-            "error": "GEMINI_API_KEY wajib diisi (set env GEMINI_API_KEY atau kirim lewat form).",
-        }), 400
+    judul = (request.form.get("judul") or "").strip()
+    isi = (request.form.get("isi") or "").strip()
+    if not judul:
+        return jsonify({"error": "Judul wajib diisi."}), 400
+    if not isi:
+        return jsonify({"error": "Isi wajib diisi."}), 400
 
     payload: dict = {
-        "gemini_api_key": gemini_key,
-        "url":                article_url,
+        "judul":              judul,
+        "isi":                isi,
         "watermark":          form_str("watermark", "@username"),
-        "language":           form_str("language", "Indonesia"),
         "duration":           form_int("duration", 7),
         "accent_color":       form_str("accent_color", "#FF0000"),
         "title_bg_color":     form_str("title_bg_color", "#FFFFFF"),
@@ -155,7 +150,7 @@ def too_large(_e):
 
 # ─── Entry Point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    print(f"🚀 Flask UI  : http://{HOST}:{PORT}")
-    print(f"🔗 API target: {API_URL}")
+    print(f"Flask UI  : http://{HOST}:{PORT}")
+    print(f"API target: {API_URL}")
     debug = os.getenv("FLASK_DEBUG", "0") == "1"
     app.run(host=HOST, port=PORT, debug=debug)
