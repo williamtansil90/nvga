@@ -33,7 +33,7 @@ services:
     labels:
       org.opencontainers.image.title: "News Video Generator [ALPHA] — UI"
     ports:
-      - "${UI_PORT:-5000}:5000"
+      - "${UI_PORT:-5001}:5001"
     environment:
       API_URL: http://api:8001
     volumes:

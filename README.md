@@ -18,7 +18,7 @@ docker compose up -d --build
 
 | Service | URL |
 |---|---|
-| Web UI | http://localhost:5000 |
+| Web UI | http://localhost:5001 |
 | API + Swagger | http://localhost:8001/docs |
 
 Perintah berguna:

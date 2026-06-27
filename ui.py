@@ -6,8 +6,8 @@ UI sederhana yang memanggil API FastAPI di main.py (`POST /generate-video`).
 
 Jalankan:
     1) Terminal 1 → python main.py           (FastAPI, port 8001)
-    2) Terminal 2 → python ui.py             (Flask UI, port 5000)
-    3) Buka       → http://localhost:5000
+    2) Terminal 2 → python ui.py             (Flask UI, port 5001)
+    3) Buka       → http://localhost:5001
 """
 
 import base64
@@ -21,7 +21,7 @@ from flask import Flask, jsonify, render_template, request, send_from_directory
 # ─── Konfigurasi ───────────────────────────────────────────────────────────────
 API_URL        = os.getenv("API_URL", "http://localhost:8001")
 HOST           = os.getenv("UI_HOST", "0.0.0.0")
-PORT           = int(os.getenv("UI_PORT", "5000"))
+PORT           = int(os.getenv("UI_PORT", "5001"))
 OUTPUT_DIR = Path(__file__).parent / "static" / "outputs"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
