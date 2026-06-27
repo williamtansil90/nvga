@@ -316,9 +316,9 @@ def wrap_text_lines(draw: ImageDraw.ImageDraw, text: str, font, max_px: int) -> 
 
 # ─── Auto Layout ───────────────────────────────────────────────────────────────
 # Konstanta tata letak. Diatur supaya gambar terpusat, judul+ringkasan tidak
-# masuk ke area watermark/progress bar di bawah, dan tidak tumpang tindih.
+# masuk ke area watermark di bawah, dan tidak tumpang tindih.
 SAFE_TOP        = 80     # margin atas
-SAFE_BOTTOM     = 200    # margin bawah (watermark di y=1840, progress bar y=1850)
+SAFE_BOTTOM     = 200    # margin bawah (watermark di y=1840, progress bar di y=1904)
 GAP_IMG_TITLE   = 60     # jarak gambar → kotak judul (sudah termasuk garis aksen)
 GAP_TITLE_SUM   = 50     # jarak kotak judul → ringkasan
 MIN_IMG_HEIGHT  = 380    # batas bawah saat auto-resize gambar agar konten muat
@@ -455,9 +455,7 @@ def render_overlay(
     layout: dict,
 ) -> Image.Image:
     """
-    Buat gambar PNG RGBA yang mereplikasi semua elemen visual dari
-    aplikasi React (foto, gradient, garis, kotak judul, ringkasan, watermark).
-    Progress bar akan ditambahkan oleh ffmpeg secara dinamis.
+    Buat gambar PNG RGBA (foto, gradient, garis, kotak judul, ringkasan, watermark).
     """
     W, H = CANVAS_W, CANVAS_H
     overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
@@ -584,15 +582,15 @@ def compose_video(
     Filter:
       • Scale + crop video latar ke 1080×1920
       • Composite overlay dengan alpha
-      • Animasi progress bar via drawbox (lebar = 780 × t/duration px)
+      • Progress bar putih (kiri → kanan, mengikuti durasi)
     """
     W, H = CANVAS_W, CANVAS_H
     r, g, b = hex_to_rgb(canvas_bg)
     bg_hex = f"0x{r:02x}{g:02x}{b:02x}"
 
-    # Progress bar: x=150, y=1850, h=8, total w=780
-    pb_x, pb_y, pb_h = 150, 1850, 8
-    pb_w = W - 300  # 780
+    pb_h = 16
+    pb_y = H - pb_h
+    bar_end_y = pb_y + pb_h - 1
 
     # ── Bangun argumen input ──────────────────────────────────────────────
     inputs: list[str] = []
@@ -630,17 +628,14 @@ def compose_video(
     # Composite overlay
     filters.append(f"[bg][{overlay_idx}:v]overlay=0:0:format=auto[comp]")
 
-    # Track progress bar (abu transparan)
+    # Progress bar putih: lebar bertambah kiri → kanan (geq agar animasi per-frame)
+    bar_cond = f"between(Y,{pb_y},{bar_end_y})*lte(X,{W}*T/{duration})"
     filters.append(
-        f"[comp]drawbox=x={pb_x}:y={pb_y}:w={pb_w}:h={pb_h}:"
-        f"color=0xFFFFFF40:t=fill[comp1]"
-    )
-
-    # Batang progress animasi (putih, lebar meningkat seiring waktu)
-    filters.append(
-        f"[comp1]drawbox=x={pb_x}:y={pb_y}:"
-        f"w=min({pb_w}\\,{pb_w}*t/{duration}):h={pb_h}:"
-        f"color=white:t=fill[out]"
+        f"[comp]geq="
+        f"r='if({bar_cond},255,r(X,Y))':"
+        f"g='if({bar_cond},255,g(X,Y))':"
+        f"b='if({bar_cond},255,b(X,Y))'"
+        f"[out]"
     )
 
     filter_str = ";".join(filters)
@@ -696,7 +691,7 @@ async def generate_video(req: VideoRequest):
     3. **Auto Layout** → hitung posisi gambar/judul/ringkasan agar proporsional
        (field posisi bernilai `"auto"` akan dihitung; nilai int akan dihormati)
     4. **PIL** → render overlay PNG (foto, gradient, judul, ringkasan, watermark)
-    5. **FFmpeg** → composite overlay + video/warna BG + progress bar animasi + audio
+    5. **FFmpeg** → composite overlay + progress bar + video/warna BG + audio
     6. Return **base64 MP4**
     """
 

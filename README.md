@@ -165,7 +165,7 @@ JSON Input (judul + isi)
               │
          FFmpeg
       • Composite overlay
-      • Progress bar animasi
+      • Progress bar (putih, kiri → kanan)
       • Mix audio
       • Encode H.264 MP4
               │
